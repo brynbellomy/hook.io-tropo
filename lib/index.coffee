@@ -13,6 +13,7 @@ class exports.TropoHook extends Hook
   constructor: (options) ->
     options.events = require('./eventMap')
     Hook.call @, options
+    @senderPhoneNumber = options.senderPhoneNumber ? 'asdf'
     @.on "hook::ready", =>
 
 
@@ -25,11 +26,11 @@ class exports.TropoHook extends Hook
     session.on "responseBody", (body) ->
       cb null, body
 
-  sendSMS: (messageBody, senderPhoneNumber, recipientPhoneNumber, callback) =>
+  sendSMS: (messageBody, _senderPhoneNumber, recipientPhoneNumber, callback) =>
     @initiateSession
       requestType: "sms"
       messageBody: messageBody
-      senderPhoneNumber: senderPhoneNumber or @senderPhoneNumber
+      senderPhoneNumber: (if !! _senderPhoneNumber then _senderPhoneNumber else @senderPhoneNumber)
       recipientPhoneNumber: recipientPhoneNumber
     , callback
 
@@ -110,10 +111,6 @@ class exports.TropoHook extends Hook
 exports.TropoHook.addTropoEndpoints = (app, callbacks) ->
     app.post "/tropo", (req, res) ->
       tropo = new tropowebapi.TropoWebAPI()
-
-      console.log "*** tropo request received"
-      console.log req.body
-      console.log "********"
 
       if req.body.session?.parameters?
         if typeof callbacks?.receivedMessage is "function"
