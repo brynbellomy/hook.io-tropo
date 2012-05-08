@@ -29,7 +29,7 @@ class exports.TropoHook extends Hook
     @initiateSession
       requestType: "sms"
       messageBody: messageBody
-      senderPhoneNumber: senderPhoneNumber
+      senderPhoneNumber: senderPhoneNumber or @senderPhoneNumber
       recipientPhoneNumber: recipientPhoneNumber
     , callback
 
