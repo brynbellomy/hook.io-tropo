@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-var TropoHook = require('../lib/cloudapp').TropoHook;
+var TropoHook = require('../lib/index').TropoHook;
 
 var theHook = new TropoHook({
   name: "tropo-hook",

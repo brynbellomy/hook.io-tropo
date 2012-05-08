@@ -23,7 +23,7 @@ class exports.TropoHook extends Hook
     session.makeApiCall @token, params
 
     session.on "responseBody", (body) ->
-      cb null, true
+      cb null, body
 
   sendSMS: (messageBody, senderPhoneNumber, recipientPhoneNumber, callback) =>
     @initiateSession
