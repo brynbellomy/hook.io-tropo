@@ -6,7 +6,7 @@ tropoProvisioning = require("tropo-webapi/lib/tropo-provisioning.js")
 tropoSession = require("tropo-webapi/lib/tropo-session.js")
 
 # attach package info to hook object
-require('pkginfo')(module, 'version', 'hook')
+#require('pkginfo')(module, 'version', 'hook')
 
 # the hook class
 class exports.TropoHook extends Hook
