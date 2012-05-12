@@ -1,38 +1,67 @@
 # requires
 async = require("async")
-Hook = require('hook.io').Hook
+Hook = require("hook.io").Hook
 tropowebapi = require("tropo-webapi")
 tropoProvisioning = require("tropo-webapi/lib/tropo-provisioning.js")
 tropoSession = require("tropo-webapi/lib/tropo-session.js")
-
-# attach package info to hook object
-#require('pkginfo')(module, 'version', 'hook')
+_ = require "underscore"
 
 # the hook class
 class exports.TropoHook extends Hook
+
   constructor: (options) ->
-    options.events = require('./eventMap')
+
+    _.defaults(options,
+      events: require "#{__dirname}/eventMap"
+      port: 80
+      hostname: undefined
+      name: "tropo-hook"
+    )
+
     Hook.call @, options
-    @senderPhoneNumber = options.senderPhoneNumber ? 'asdf'
-    @.on "hook::ready", =>
+    @senderPhoneNumber = options.senderPhoneNumber ? 'asdf' # @@TODO
+
+    @on "hook::ready", =>
+      @startHTTPServer()
+
+
+
+  tropoRequestCallback: (req, res, method, body) =>
+
+
+
+  startHTTPServer: =>
+    express = require "express"
+    @app = app = express.createServer()
+    app.configure ->
+      app.use express.bodyParser()
+      app.use app.router
+
+    app.post "/", (req, res) => @tropoRequestCallback req, res, req.method ? "POST", req.body ? {}
+    app.listen @port, @hostname, =>
+      @emit "tropo::webserver::started", { port: @port, hostname: @hostname }
 
 
   initiateSession: (params, cb) =>
     session = new tropoSession.TropoSession()
 
-    # when tropo receives this, it POSTs to /tropo on our side
+    # when tropo receives this, it POSTs to the tropo endpoint (usually "/") on our side
     session.makeApiCall @token, params
 
     session.on "responseBody", (body) ->
       cb null, body
 
-  sendSMS: (messageBody, _senderPhoneNumber, recipientPhoneNumber, callback) =>
+
+
+  sendSMSEventReceived: (messageBody, _senderPhoneNumber, recipientPhoneNumber, callback) =>
     @initiateSession
       requestType: "sms"
       messageBody: messageBody
       senderPhoneNumber: (if !! _senderPhoneNumber then _senderPhoneNumber else @senderPhoneNumber)
       recipientPhoneNumber: recipientPhoneNumber
     , callback
+
+
 
   listPhoneNumbersInPool: (fieldToReturn, cb) ->
     unless cb
@@ -52,6 +81,8 @@ class exports.TropoHook extends Hook
           else mapCb null, obj
         , cb)
 
+
+
   integerizePrefix: (thePrefix) ->
     if typeof thePrefix is "string"
       thePrefix = parseInt(thePrefix.replace(/^1/, ""), 10)
@@ -60,8 +91,12 @@ class exports.TropoHook extends Hook
       null
     else thePrefix
 
+
+
   sanitizeNumber: (number) ->
     number?.replace(/^\+1/, "")
+
+
 
   listAreaCodesInPool: (cb) ->
     @listPhoneNumbersInPool "prefix", (err, prefixes) ->
@@ -71,6 +106,8 @@ class exports.TropoHook extends Hook
           mapCb null, @integerizePrefix(prefix)
         , cb)
 
+
+
   getAreaCodeToPhoneNumberHash: (cb) ->
     hash = {}
     @listPhoneNumbersInPool (err, numbers) ->
@@ -78,12 +115,14 @@ class exports.TropoHook extends Hook
         numbers,
         (number, forCb) ->
           prefix = @integerizePrefix(number.prefix)
-          if prefix? then hash[prefix] = @sanitizeNumber(number.number)  
+          if prefix? then hash[prefix] = @sanitizeNumber(number.number)
           forCb()
         ,
         (err) ->
           cb err, hash
       )
+
+
 
   getNumberForAreaCode: (areaCode, cb) ->
     @getAreaCodeToPhoneNumberHash (err, numbers) ->
@@ -108,18 +147,19 @@ class exports.TropoHook extends Hook
           else cb("could not create new phone number")
 
 
-exports.TropoHook.addTropoEndpoints = (app, callbacks) ->
-    app.post "/tropo", (req, res) ->
-      tropo = new tropowebapi.TropoWebAPI()
 
-      if req.body.session?.parameters?
-        if typeof callbacks?.receivedMessage is "function"
-          callbacks.receivedMessage req.body.session, req, res
+#exports.TropoHook.addTropoEndpoints = (app, callbacks) ->
+  #app.post "/tropo", (req, res) ->
+    #tropo = new tropowebapi.TropoWebAPI()
 
-      else
-        if req.body.session?.to?.channel? is "VOICE"
-          if typeof callbacks?.receivingCall is "function"
-            callbacks.receivingCall req.body.session, req, res
+    #if req.body.session?.parameters?
+      #if typeof callbacks?.receivedMessage is "function"
+        #callbacks.receivedMessage req.body.session, req, res
+
+    #else
+      #if req.body.session?.to?.channel? is "VOICE"
+        #if typeof callbacks?.receivingCall is "function"
+          #callbacks.receivingCall req.body.session, req, res
 
 
 

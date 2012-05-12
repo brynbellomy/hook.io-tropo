@@ -4,6 +4,7 @@ var TropoHook = require('../lib/index').TropoHook;
 
 var theHook = new TropoHook({
   name: "tropo-hook",
+  type: "tropo",
   debug: true
 });
 
